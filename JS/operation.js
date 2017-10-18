@@ -44,6 +44,16 @@ function initScene(){
 	mainScene = new Physijs.Scene();
 	mainScene.setGravity( new THREE.Vector3(0,0,0) );
 
+	var cube1 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
+	mainScene.add(cube1);
+
+	hudScene = new THREE.Scene();
+
+	var cube2 = new THREE.Mesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
+	hudScene.add(cube2);
+
+	hudScene.add()
+
 }
 
 function initAudio(){
@@ -58,11 +68,10 @@ function initMain(){
 	mainRenderer.shadowMap.enabled = true;
 
 	mainCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
+	mainCamera.position.set(2,2,2);
+	mainCamera.lookAt( mainScene.position );
 
-	player.add(mainCamera);
-	mainCamera.lookAt( new THREE.Vector3(0,0,10) );
-
-	document.getElementById("mainView").appendChild( mainRenderer.domElement );
+	$("#mainView").append( mainRenderer.domElement );
 
 }
 
@@ -73,11 +82,11 @@ function initHUD(width, height){
 	hudRenderer.shadowMap.enabled = true;
 
 	hudCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	hudCamera.position.y = 1000;
+	hudCamera.position.set(2,2,2);
 
 	hudCamera.lookAt(hudScene.position);
 
-	document.getElementById("hudView").appendChild( hudRenderer.domElement );
+	$("#hudView").append( hudRenderer.domElement );
 
 }
 
@@ -100,12 +109,12 @@ function resizeHUD(){
 
     if( w > h ){
     	side = Math.round(h*0.30);
-    	hudRenderer.setSize( (side/height)*width ,side, true);
-    	hudRenderer.setScissor(0,0,(side/height)*width,side)
+    	hudRenderer.setSize(side, side, true);
+    	hudRenderer.setScissor(0, 0, side, side);
     }else{
     	side = Math.round(w*0.30);
-    	hudRenderer.setSize(side,(side/width)*height, true);
-    	hudRenderer.setScissor(0,0,side,(side/width)*height)
+    	hudRenderer.setSize(side, side, true);
+    	hudRenderer.setScissor(0, 0, side, side);
     }
 
     
@@ -124,9 +133,8 @@ function render(){
 	resizeMain();
 	mainRenderer.render( mainScene, mainCamera );
 
-	hudRenderer.setScissorTest(true);
 	resizeHUD();
-	hudRenderer.render( mainScene, hudCamera );
+	hudRenderer.render( hudScene, hudCamera );
 
 	requestAnimationFrame( render );
 

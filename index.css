@@ -13,12 +13,11 @@ html, body, mainView {
 	padding: 0px;
 }
 
-hudView {
-	position: 'absolute';
-	bottom: 0 + '%';
-	padding: 0 + 'px';
-	margin: 0 + 'px';
-	visibility: 'hidden';
-	border: "thick solid #222233";
+#hudView {
+	position: absolute;
+	z-index: 2;
+	bottom: 0%;
+	padding: 0px;
+	margin: 0px;
 
 }
