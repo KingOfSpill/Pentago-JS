@@ -3,15 +3,12 @@
 Physijs.scripts.worker = 'Libs/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
-document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
-
 window.onload = init;
 
 var mainScene, hudScene;
 
 var mouse = new THREE.Vector2();
 var raycaster = new THREE.Raycaster();
-var projector = new THREE.Projector();
 
 var mainCamera, mainRenderer;
 
@@ -20,6 +17,10 @@ var hudCamera, hudRenderer;
 var clock = new THREE.Clock();
 
 var muted = false, paused = false;
+
+var objectInHud, objectinMain;
+
+var cube1, cube2;
 
 function hole(){
 
@@ -46,25 +47,28 @@ function initScene(){
 	mainScene = new Physijs.Scene();
 	mainScene.setGravity( new THREE.Vector3(0,0,0) );
 
-	var cube1 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
+	cube1 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
 	cube1.position.set(-1,0,-1);
 	mainScene.add(cube1);
 
-	var cube2 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFF0000}), 1);
+	cube2 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFF0000}), 1);
 	cube2.position.set(1,0,-1);
 	mainScene.add(cube2);
 
 	hudScene = new THREE.Scene();
 
-	viewObjectInHud( cube2 );
-
 }
 
 function viewObjectInHud( object ){
 
-	var newMesh = object.clone();
-	newMesh.position.set(0,0,0);
-	hudScene.add( newMesh );
+	hudScene.remove(objectInHud);
+
+	if( object != null ){
+		objectinMain = object;
+		objectInHud = object.clone();
+		objectInHud.position.set(0,0,0);
+		hudScene.add( objectInHud );
+	}
 
 }
 
@@ -132,7 +136,7 @@ function resizeHUD(){
     
 }
 
-window.addEventListener('keyup', function switchMute(event) { if( event == 77 ) muted = !muted }, false);
+window.addEventListener('keyup', function switchMute(event) { if( event.keyCode == 77 ) muted = !muted; }, false);
 
 function render(){
 
@@ -141,6 +145,17 @@ function render(){
 		mainScene.simulate();
 
 	}
+
+	raycaster.setFromCamera( mouse, mainCamera );
+	var intersects = raycaster.intersectObjects( mainScene.children );
+
+	if( intersects.length > 0)
+		viewObjectInHud( intersects[0].object );
+	else
+		viewObjectInHud( null );
+
+	if( objectInHud != null )
+		objectInHud.rotation.copy( objectinMain.rotation );
 
 	resizeMain();
 	mainRenderer.render( mainScene, mainCamera );
@@ -163,14 +178,7 @@ window.addEventListener("mousemove", function(e){ handleMouseMovement(e) } , fal
 
 function handleMouseMovement(e){
 
-	var requestedElement = mainRenderer.domElement;
-
-	if (document.pointerLockElement === requestedElement || document.mozPointerLockElement === requestedElement || document.webkitPointerLockElement === requestedElement ){
-		
-		var movementX = e.movementX || e.mozMovementX || e.webkitMovementX || 0;
-
-	}else{
-
-	}
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = -( event.clientY / window.innerHeight ) * 2 + 1;
 	
 }
