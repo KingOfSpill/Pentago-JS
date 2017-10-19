@@ -9,7 +9,9 @@ window.onload = init;
 
 var mainScene, hudScene;
 
-var hud;
+var mouse = new THREE.Vector2();
+var raycaster = new THREE.Raycaster();
+var projector = new THREE.Projector();
 
 var mainCamera, mainRenderer;
 
@@ -45,14 +47,24 @@ function initScene(){
 	mainScene.setGravity( new THREE.Vector3(0,0,0) );
 
 	var cube1 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
+	cube1.position.set(-1,0,-1);
 	mainScene.add(cube1);
+
+	var cube2 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFF0000}), 1);
+	cube2.position.set(1,0,-1);
+	mainScene.add(cube2);
 
 	hudScene = new THREE.Scene();
 
-	var cube2 = new THREE.Mesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
-	hudScene.add(cube2);
+	viewObjectInHud( cube2 );
 
-	hudScene.add()
+}
+
+function viewObjectInHud( object ){
+
+	var newMesh = object.clone();
+	newMesh.position.set(0,0,0);
+	hudScene.add( newMesh );
 
 }
 
