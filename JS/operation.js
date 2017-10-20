@@ -8,6 +8,7 @@ window.onload = init;
 var mainScene, hudScene;
 
 var mouse = new THREE.Vector2();
+var mouseDown = false;
 var raycaster = new THREE.Raycaster();
 
 var mainCamera, mainRenderer;
@@ -17,6 +18,9 @@ var hudCamera, hudRenderer;
 var clock = new THREE.Clock();
 
 var muted = false, paused = false;
+
+var rotation = [ 0, 0 ];
+var rotSpeed = 4;
 
 var objectInHud, objectinMain;
 
@@ -84,7 +88,7 @@ function initMain(){
 	mainRenderer.shadowMap.enabled = true;
 
 	mainCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	mainCamera.position.set(2,2,2);
+	mainCamera.position.set(0,2,2);
 	mainCamera.lookAt( mainScene.position );
 
 	$("#mainView").append( mainRenderer.domElement );
@@ -98,7 +102,7 @@ function initHUD(width, height){
 	hudRenderer.shadowMap.enabled = true;
 
 	hudCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	hudCamera.position.set(2,2,2);
+	hudCamera.position.set(0,2,2);
 
 	hudCamera.lookAt(hudScene.position);
 
@@ -136,26 +140,16 @@ function resizeHUD(){
     
 }
 
-window.addEventListener('keyup', function switchMute(event) { if( event.keyCode == 77 ) muted = !muted; }, false);
+Mousetrap.bind('m', function(){ muted = !muted; }, false);
 
 function render(){
 
 	if(!paused){
 
-		mainScene.simulate();
+		//mainScene.simulate();
+		handleMouse();
 
 	}
-
-	raycaster.setFromCamera( mouse, mainCamera );
-	var intersects = raycaster.intersectObjects( mainScene.children );
-
-	if( intersects.length > 0)
-		viewObjectInHud( intersects[0].object );
-	else
-		viewObjectInHud( null );
-
-	if( objectInHud != null )
-		objectInHud.rotation.copy( objectinMain.rotation );
 
 	resizeMain();
 	mainRenderer.render( mainScene, mainCamera );
@@ -167,18 +161,50 @@ function render(){
 
 }
 
-function onClick(){
+function handleMouse(){
 
-	mainRenderer.domElement.requestPointerLock = mainRenderer.domElement.requestPointerLock || mainRenderer.domElement.mozRequestPointerLock || mainRenderer.domElement.webkitRequestPointerLock;
-	mainRenderer.domElement.requestPointerLock();
+	if(!mouseDown){
+
+		raycaster.setFromCamera( mouse, mainCamera );
+		var intersects = raycaster.intersectObjects( mainScene.children );
+
+		if( intersects.length > 0)
+			viewObjectInHud( intersects[0].object );
+		else
+			viewObjectInHud( null );
+
+	}
+
+	if( objectInHud != null )
+			objectInHud.rotation.copy( objectinMain.rotation );
 
 }
 
-window.addEventListener("mousemove", function(e){ handleMouseMovement(e) } , false);
+window.addEventListener("mousedown", function(e){ mouseDown = true; } , false);
+window.addEventListener("mouseup", function(e){ mouseDown = false; } , false);
+
+window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
 
 function handleMouseMovement(e){
 
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = -( event.clientY / window.innerHeight ) * 2 + 1;
+	const newX = ( event.clientX / window.innerWidth ) * 2 - 1;
+	const newY = -( event.clientY / window.innerHeight ) * 2 + 1;
+
+	if(mouseDown && objectinMain != null){
+
+		var invQuat = objectinMain.quaternion.inverse();
+		var verticalAxis = new THREE.Vector3(0,1,0).applyQuaternion( invQuat );
+		var horizontalAxis = new THREE.Vector3(1,0,0).applyQuaternion( invQuat );
+
+		//objectinMain.rotateY( (newX-mouse.x) );
+		//objectinMain.rotateX( -(newY-mouse.y) );
+
+		objectinMain.rotateOnAxis( verticalAxis, (newX-mouse.x)*10 );
+		objectinMain.rotateOnAxis( horizontalAxis, -(newY-mouse.y)*10 );
+
+	}
+
+	mouse.x = newX;
+	mouse.y = newY;
 	
 }
