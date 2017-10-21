@@ -23,7 +23,7 @@ var left = false, right = false, up = false, down = false;
 
 var objectInHud, objectinMain;
 
-var cube1, cube2;
+var board;
 
 function hole(){
 
@@ -35,6 +35,7 @@ function hole(){
 function init(){
 
 	initScene();
+	initLights();
 
 	initAudio();
 
@@ -45,21 +46,60 @@ function init(){
 
 }
 
+function Board(quarterGeometry, quarterMaterials){
+
+	this.quarters = new Array();
+
+	this.size = 3.1;
+
+	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials);
+	this.quarters[0].mesh.position.set(this.size,0,-this.size);
+	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials);
+	this.quarters[1].mesh.position.set(-this.size,0,-this.size);
+	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials);
+	this.quarters[2].mesh.position.set(-this.size,0,this.size);
+	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials);
+	this.quarters[3].mesh.position.set(this.size,0,this.size);
+
+}
+
+function Quarter(geometry, materials){
+
+	this.mesh = new THREE.Mesh(geometry, materials);
+
+}
+
 function initScene(){
 
-	mainScene = new Physijs.Scene();
-	mainScene.setGravity( new THREE.Vector3(0,0,0) );
+	mainScene = new THREE.Scene();
 
-	cube1 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFFFF00}), 1);
-	cube1.position.set(-1,0,-1);
-	mainScene.add(cube1);
-
-	cube2 = new Physijs.BoxMesh( new THREE.CubeGeometry(1,1,1), new THREE.MeshBasicMaterial({color: 0xFF0000}), 1);
-	cube2.position.set(1,0,-1);
-	mainScene.add(cube2);
+	var loader = new THREE.JSONLoader();
+	loader.load('./Models/pentago.json', function(geometry, materials){
+		board = new Board(geometry, materials);
+		mainScene.add(board.quarters[0].mesh);
+		mainScene.add(board.quarters[1].mesh);
+		mainScene.add(board.quarters[2].mesh);
+		mainScene.add(board.quarters[3].mesh);
+	})
 
 	hudScene = new THREE.Scene();
 
+}
+
+function initLights(){
+    var spotLight = new THREE.SpotLight( 0xffffff );
+	spotLight.position.set( 20, 20, 20 );
+
+	spotLight.castShadow = true;
+
+	spotLight.shadow.mapSize.width = 1024;
+	spotLight.shadow.mapSize.height = 1024;
+
+	spotLight.shadow.camera.near = 500;
+	spotLight.shadow.camera.far = 4000;
+	spotLight.shadow.camera.fov = 30;
+
+	mainScene.add( spotLight );
 }
 
 function viewObjectInHud( object ){
@@ -93,7 +133,7 @@ function initMain(){
 	mainRenderer.shadowMap.enabled = true;
 
 	mainCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	mainCamera.position.set(0,2,2);
+	mainCamera.position.set(5,15,15);
 	mainCamera.lookAt( mainScene.position );
 
 	$("#mainView").append( mainRenderer.domElement );
@@ -107,7 +147,7 @@ function initHUD(width, height){
 	hudRenderer.shadowMap.enabled = true;
 
 	hudCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	hudCamera.position.set(0,2,2);
+	hudCamera.position.set(0,10,10);
 
 	hudCamera.lookAt(hudScene.position);
 
@@ -151,7 +191,6 @@ function render(){
 
 	if(!paused){
 
-		mainScene.simulate();
 		handleMouse();
 
 	}
@@ -176,9 +215,6 @@ function render(){
 			objectInHud.rotateOnAxis( horizontalAxis, -rotSpeed );
 		else if(down)
 			objectInHud.rotateOnAxis( horizontalAxis, rotSpeed );
-
-		objectInHud.__dirtyRotation = true;
-		objectInHud.setAngularVelocity(new THREE.Vector3(0, 0, 0));
 
 	}
 
