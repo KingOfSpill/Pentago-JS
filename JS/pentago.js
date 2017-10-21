@@ -50,7 +50,7 @@ function Board(quarterGeometry, quarterMaterials){
 
 	this.quarters = new Array();
 
-	this.size = 3.1;
+	this.size = 3.2;
 
 	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials, 1, -1);
 	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials, -1, -1);
@@ -63,20 +63,20 @@ function Quarter(geometry, materials, x, z){
 
 	this.mesh = new THREE.Mesh(geometry, materials);
 
-	this.size = 3.1;
+	this.size = 3.2;
 	this.targetAngle = 0;
-	this.spinSpeed = 0.1
+	this.spinSpeed = 0.05;
 	this.x = x;
 	this.z = z;
 
 	this.mesh.position.set(this.x*this.size,0,this.z*this.size);
 
 	this.spinLeft = function( ){
-		this.targetAngle += Math.PI/4;
+		this.targetAngle += Math.PI/2;
 	}
 
 	this.spinRight = function( ){
-		this.targetAngle -= Math.PI/4;
+		this.targetAngle -= Math.PI/2;
 	}
 
 	this.spin = function(){
@@ -92,7 +92,7 @@ function Quarter(geometry, materials, x, z){
 
 	this.setPositionFromAngle = function(){
 
-		const multiplier = 0.25 * Math.sin( 4 * this.mesh.rotation.y - Math.PI/4 ) + 1.25;
+		const multiplier = 0.25 * Math.sin( 4 * this.mesh.rotation.y - Math.PI/2 ) + 1.25;
 
 		this.mesh.position.set(this.x*this.size*multiplier,0,this.z*this.size*multiplier);
 
@@ -117,14 +117,13 @@ function initScene(){
 
 	loader.load('./Models/arrow.json', function(geometry, materials){
 
-		var texture = new THREE.TextureLoader().load("./Textures/snowyHedge.png");
-		var arrow = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 'white'}))
-		arrow.position.set( 5, 2, 6.2 );
+		var arrow = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: 'white'}))
+		arrow.position.set( 5, 1, 6.2 );
 		arrow.rotation.y = Math.PI/2 + 0.2;
 		mainScene.add(arrow);
 
-		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 'white'}))
-		arrow2.position.set( 6.2, 2, 5 );
+		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: 'white'}))
+		arrow2.position.set( 6.2, 1, 5 );
 		arrow2.rotation.y = Math.PI+0.2;
 		arrow2.rotation.x = Math.PI;
 		mainScene.add(arrow2);
