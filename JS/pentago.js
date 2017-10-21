@@ -23,7 +23,7 @@ var left = false, right = false, up = false, down = false;
 
 var objectInHud, objectinMain;
 
-var board;
+var board = null;
 
 function hole(){
 
@@ -52,20 +52,51 @@ function Board(quarterGeometry, quarterMaterials){
 
 	this.size = 3.1;
 
-	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials);
-	this.quarters[0].mesh.position.set(this.size,0,-this.size);
-	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials);
-	this.quarters[1].mesh.position.set(-this.size,0,-this.size);
-	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials);
-	this.quarters[2].mesh.position.set(-this.size,0,this.size);
-	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials);
-	this.quarters[3].mesh.position.set(this.size,0,this.size);
+	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials, 1, -1);
+	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials, -1, -1);
+	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials, -1, 1);
+	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials, 1, 1);
 
 }
 
-function Quarter(geometry, materials){
+function Quarter(geometry, materials, x, z){
 
 	this.mesh = new THREE.Mesh(geometry, materials);
+
+	this.size = 3.1;
+	this.targetAngle = 0;
+	this.spinSpeed = 0.1
+	this.x = x;
+	this.z = z;
+
+	this.mesh.position.set(this.x*this.size,0,this.z*this.size);
+
+	this.spinLeft = function( ){
+		this.targetAngle += Math.PI/4;
+	}
+
+	this.spinRight = function( ){
+		this.targetAngle -= Math.PI/4;
+	}
+
+	this.spin = function(){
+
+		if( this.targetAngle > this.mesh.rotation.y )
+			this.mesh.rotation.y += Math.min(this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
+		else
+			this.mesh.rotation.y += Math.max(-this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
+
+		this.setPositionFromAngle();
+
+	}
+
+	this.setPositionFromAngle = function(){
+
+		const multiplier = 0.25 * Math.sin( 4 * this.mesh.rotation.y - Math.PI/4 ) + 1.25;
+
+		this.mesh.position.set(this.x*this.size*multiplier,0,this.z*this.size*multiplier);
+
+	}
 
 }
 
@@ -75,11 +106,28 @@ function initScene(){
 
 	var loader = new THREE.JSONLoader();
 	loader.load('./Models/pentago.json', function(geometry, materials){
-		board = new Board(geometry, materials);
+		var texture = new THREE.TextureLoader().load( "./Textures/plastic.png" );
+		board = new Board(geometry, new THREE.MeshLambertMaterial({map: texture}) );
 		mainScene.add(board.quarters[0].mesh);
 		mainScene.add(board.quarters[1].mesh);
 		mainScene.add(board.quarters[2].mesh);
 		mainScene.add(board.quarters[3].mesh);
+		board.quarters[3].spinLeft();
+	})
+
+	loader.load('./Models/arrow.json', function(geometry, materials){
+
+		var texture = new THREE.TextureLoader().load("./Textures/snowyHedge.png");
+		var arrow = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 'white'}))
+		arrow.position.set( 5, 2, 6.2 );
+		arrow.rotation.y = Math.PI/2 + 0.2;
+		mainScene.add(arrow);
+
+		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 'white'}))
+		arrow2.position.set( 6.2, 2, 5 );
+		arrow2.rotation.y = Math.PI+0.2;
+		arrow2.rotation.x = Math.PI;
+		mainScene.add(arrow2);
 	})
 
 	hudScene = new THREE.Scene();
@@ -88,7 +136,7 @@ function initScene(){
 
 function initLights(){
     var spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set( 20, 20, 20 );
+	spotLight.position.set( -20, 20, 20 );
 
 	spotLight.castShadow = true;
 
@@ -131,9 +179,10 @@ function initMain(){
 	mainRenderer.setClearColor( 0x000033, 1.0 );
 	
 	mainRenderer.shadowMap.enabled = true;
+	mainRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 	mainCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	mainCamera.position.set(5,15,15);
+	mainCamera.position.set(5,20,15);
 	mainCamera.lookAt( mainScene.position );
 
 	$("#mainView").append( mainRenderer.domElement );
@@ -193,28 +242,14 @@ function render(){
 
 		handleMouse();
 
+		if( board != null )
+			board.quarters[3].spin();
+
 	}
 
-	if(objectInHud != null){
+	if(objectInHud != null && objectinMain != null){
 
-		var invQuat = objectInHud.quaternion.inverse();
-		var verticalAxis = new THREE.Vector3(0,1,0);//.applyQuaternion( invQuat );
-		var horizontalAxis = new THREE.Vector3(1,0,0);//.applyQuaternion( invQuat );
-
-		//objectInHud.rotateY( (newX-mouse.x) );
-		//objectInHud.rotateX( -(newY-mouse.y) );
-
-		const rotSpeed = 0.001;
-
-		if(left)
-			objectInHud.rotateOnAxis( verticalAxis, -rotSpeed );
-		else if(right)
-			objectInHud.rotateOnAxis( verticalAxis, rotSpeed );
-
-		if(up)
-			objectInHud.rotateOnAxis( horizontalAxis, -rotSpeed );
-		else if(down)
-			objectInHud.rotateOnAxis( horizontalAxis, rotSpeed );
+		objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
 
 	}
 
@@ -247,7 +282,29 @@ function handleMouse(){
 
 }
 
-window.addEventListener("mousedown", function(e){ mouseDown = true; } , false);
+//window.addEventListener("mousedown", function(e){ board.quarters[3].spinLeft(); } , false);
+
+$('html').mousedown( function(e){
+
+	if( e.which === 1 ){
+		board.quarters[3].spinLeft();
+	}else if( e.which === 2){
+
+	}else if( e.which ===3){
+		e.preventDefault();
+		board.quarters[3].spinRight();
+		return false; 
+	}
+
+});
+document.oncontextmenu = function() {
+    return false;
+}
+/*window.addEventListener("contextmenu", function(e){ 
+	e.preventDefault();
+	board.quarters[3].spinRight();
+	return false; 
+} , false);*/
 window.addEventListener("mouseup", function(e){ mouseDown = false; } , false);
 
 window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
