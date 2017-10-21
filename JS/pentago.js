@@ -24,6 +24,7 @@ var left = false, right = false, up = false, down = false;
 var objectInHud, objectinMain;
 
 var board = null;
+var move = 1, turnMode = false;
 
 var loader = new THREE.JSONLoader();
 
@@ -60,11 +61,49 @@ function Board(quarterGeometry, quarterMaterials){
 	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials, -1, 1);
 	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials, 1, 1);
 
+	mainScene.add(this.quarters[0].mesh);
+	mainScene.add(this.quarters[1].mesh);
+	mainScene.add(this.quarters[2].mesh);
+	mainScene.add(this.quarters[3].mesh);
+
+	loader.load('./Models/base.json', function(geometry, materials){
+
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		this.base = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.1, shininess: 5}) );
+		this.base.position.set( 0, -1, 0 );
+		this.base.castShadow = true;
+		this.base.recieveShadow = true;
+		this.base.scale.set( 0.7, 1, 0.7 );
+		mainScene.add( this.base );
+
+	}.bind(this));
+
+	this.handleIntersects = function(){
+
+		for( var i = 0; i < 4; i++ )
+			this.quarters[i].handleIntersects();
+
+	}
+
+	this.findStoneById = function( id ){
+
+		for( var i = 0; i < 4; i++ ){
+			var stone = this.quarters[i].findStoneById( id );
+			if( stone != null )
+				return stone;
+		}
+
+		return null;
+
+	}
+
 }
 
 function Quarter(geometry, materials, x, z){
 
 	this.mesh = new THREE.Mesh(geometry, materials);
+	this.mesh.castShadow = true;
+	this.mesh.name = "quarter";
 
 	this.size = 3.3;
 	this.targetAngle = 0;
@@ -72,7 +111,56 @@ function Quarter(geometry, materials, x, z){
 	this.x = x;
 	this.z = z;
 
+	this.stones = new Array();
+	this.stones[0] = new Array();
+	this.stones[1] = new Array();
+	this.stones[2] = new Array();
+
 	this.mesh.position.set(this.x*this.size,0,this.z*this.size);
+
+	loader.load('./Models/stone.json', function(geometry, materials){ this.createStones(geometry, materials); }.bind(this));
+
+	this.createStones = function(geometry, materials){
+
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		var whiteMaterial = new THREE.MeshPhongMaterial({color: 'white', specularMap: bump, bumpScale: 0.2, shininess: 300});
+		var blackMaterial = new THREE.MeshPhongMaterial({color: 'black', specularMap: bump, bumpScale: 0.2, shininess: 300});
+
+		for( var i = 0; i < 3; i++ ){
+			for( var j = 0; j < 3; j++ ){
+
+				var stone = new Stone(geometry, whiteMaterial, blackMaterial, i, j);
+				this.mesh.add(stone.mesh);
+				this.stones[i][j] = stone;
+
+			}
+		}
+
+	}
+
+	this.handleIntersects = function(){
+
+		for( var i = 0; i < 3; i++ )
+			for( var j = 0; j < 3; j++ )
+				this.stones[i][j].handleIntersect();
+
+	}
+
+	this.findStoneById = function( id ){
+
+		console.log('id:' + id);
+
+		for( var i = 0; i < 3; i++ )
+			for( var j = 0; j < 3; j++ ){
+				console.log( 'stoneID:' + this.stones[i][j].mesh.id );
+				if( this.stones[i][j].mesh.id == id ){
+					return this.stones[i][j];
+				}
+			}
+
+		return null;
+
+	}
 
 	this.spinLeft = function( ){
 		this.targetAngle += Math.PI/2;
@@ -103,6 +191,51 @@ function Quarter(geometry, materials, x, z){
 
 }
 
+function Stone( geometry, whiteMaterial, blackMaterial, x, z){
+
+	this.state = 0;
+	this.whiteMaterial = whiteMaterial;
+	this.blackMaterial = blackMaterial;
+	this.tranparentMaterial = new THREE.MeshBasicMaterial({visible: false});
+
+	this.mesh = new THREE.Mesh(geometry, this.tranparentMaterial);
+	this.mesh.scale.set( 0.7, 0.7, 0.7 );
+	this.mesh.recieveShadow = true;
+	this.mesh.position.set( 2 * (x-1), 0.5, 2 * (z-1) );
+	this.mesh.name = "stone";
+
+	this.handleIntersect = function(){
+
+		if( raycaster.intersectObject( this.mesh ).length > 0 )
+			this.move();
+
+	}
+
+	this.move = function(){
+
+		if( turnMode == false ){
+			this.setColor(move);
+			this.turnMode = true;
+		}
+
+	}
+
+	this.setColor = function( newColor ){
+
+		this.state = newColor;
+
+		if( newColor == 0 ){
+			this.mesh.material = this.tranparentMaterial;
+		}else if( newColor == 1 ){
+			this.mesh.material = this.blackMaterial;
+		}else if( newColor == 2 ){
+			this.mesh.material = this.whiteMaterial;
+		}
+
+	}
+
+}
+
 function initScene(){
 
 	mainScene = new THREE.Scene();
@@ -110,20 +243,17 @@ function initScene(){
 	loader.load('./Models/pentago.json', function(geometry, materials){
 		var texture = new THREE.TextureLoader().load( "./Textures/plastic.png" );
 		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
-		board = new Board(geometry, new THREE.MeshPhongMaterial({map: texture, specularMap: bump, bumpMap: bump, bumpScale: 0.1, shininess: 5}) );
-		mainScene.add(board.quarters[0].mesh);
-		mainScene.add(board.quarters[1].mesh);
-		mainScene.add(board.quarters[2].mesh);
-		mainScene.add(board.quarters[3].mesh);
+		board = new Board(geometry, new THREE.MeshPhongMaterial({map: texture, specularMap: bump, bumpMap: bump, bumpScale: 0.1, shininess: 50}) );
+	})
 
-		loader.load('./Models/base.json', function(geometry, materials){
-			var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
-			board.base = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.1, shininess: 5}) );
-			board.base.position.set( 0, -1, 0 );
-			board.base.scale.set( 0.7, 1, 0.7 );
-			mainScene.add( board.base );
-		});
+	loader.load('./Models/table.json', function(geometry, materials){
 
+		var texture = new THREE.TextureLoader().load( './Textures/wood.jpg' );
+
+		var table = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({map: texture, shininess: 90}))
+		table.recieveShadow = true;
+		table.position.set( 0, -2, 0 );
+		mainScene.add(table);
 	})
 
 	loader.load('./Models/arrow.json', function(geometry, materials){
@@ -147,7 +277,7 @@ function initScene(){
 }
 
 function initLights(){
-    var spotLight = new THREE.SpotLight( 0xffffff );
+    var spotLight = new THREE.SpotLight( 0xffffdd );
 	spotLight.position.set( -20, 20, 20 );
 
 	spotLight.castShadow = true;
@@ -160,6 +290,8 @@ function initLights(){
 	spotLight.shadow.camera.fov = 30;
 
 	mainScene.add( spotLight );
+
+	hudScene.add( spotLight.clone() );
 }
 
 function viewObjectInHud( object ){
@@ -188,7 +320,7 @@ function initAudio(){
 function initMain(){
 
 	mainRenderer = new THREE.WebGLRenderer();
-	mainRenderer.setClearColor( 0x000033, 1.0 );
+	mainRenderer.setClearColor( 0x050505, 1.0 );
 	
 	mainRenderer.shadowMap.enabled = true;
 	mainRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -277,13 +409,13 @@ function render(){
 
 function handleMouse(){
 
-		raycaster.setFromCamera( mouse, mainCamera );
+		/*raycaster.setFromCamera( mouse, mainCamera );
 		var intersects = raycaster.intersectObjects( mainScene.children );
 
 		if( intersects.length > 0)
 			viewObjectInHud( intersects[0].object );
 		else
-			viewObjectInHud( null );
+			viewObjectInHud( null );*/
 
 	//if( objectInHud != null && objectinMain != null )
 		//objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
@@ -295,7 +427,22 @@ function handleMouse(){
 $('html').mousedown( function(e){
 
 	if( e.which === 1 ){
-		board.quarters[3].spinLeft();
+
+		raycaster.setFromCamera( mouse, mainCamera );
+
+		board.handleIntersects();
+
+		/*var intersects = raycaster.intersectObjects( mainScene.children );
+
+		for( var i = 0; i < intersects.length; i++ )
+			if( intersects[i].object.name = "stone" ){
+				var stone = board.findStoneById( intersects[i].object.id );
+				if( stone != null )
+					stone.setColor(1);
+			}*/
+
+		//board.quarters[3].spinLeft();
+
 	}else if( e.which === 2){
 		mouseDown = true;
 	}else if( e.which ===3){
