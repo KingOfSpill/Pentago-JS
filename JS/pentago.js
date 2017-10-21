@@ -277,8 +277,6 @@ function render(){
 
 function handleMouse(){
 
-	if(!mouseDown){
-
 		raycaster.setFromCamera( mouse, mainCamera );
 		var intersects = raycaster.intersectObjects( mainScene.children );
 
@@ -286,12 +284,6 @@ function handleMouse(){
 			viewObjectInHud( intersects[0].object );
 		else
 			viewObjectInHud( null );
-
-	}else{
-
-		
-		
-	}
 
 	//if( objectInHud != null && objectinMain != null )
 		//objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
@@ -305,7 +297,7 @@ $('html').mousedown( function(e){
 	if( e.which === 1 ){
 		board.quarters[3].spinLeft();
 	}else if( e.which === 2){
-		mousedown = true;
+		mouseDown = true;
 	}else if( e.which ===3){
 		e.preventDefault();
 		board.quarters[3].spinRight();
@@ -327,7 +319,7 @@ $('html').mouseup( function(e){
 	if( e.which === 1 ){
 
 	}else if( e.which === 2){
-		mousedown = false;
+		mouseDown = false;
 	}else if( e.which ===3){
 
 		e.preventDefault();
@@ -378,6 +370,33 @@ function handleMouseMovement(e){
 
 	const newX = ( event.clientX / window.innerWidth ) * 2 - 1;
 	const newY = -( event.clientY / window.innerHeight ) * 2 + 1;
+
+	const dX = newX - mouse.x;
+	const dY = newY - mouse.y;
+
+	if(mouseDown){
+
+		var quat = new THREE.Quaternion().setFromUnitVectors( mainCamera.up, new THREE.Vector3( 0, 1, 0 ) );
+		var offset = mainCamera.position.clone();
+
+		offset.applyQuaternion( quat );
+
+		var spherical = new THREE.Spherical();
+		spherical.setFromVector3( offset );
+
+		spherical.phi += dY*3;
+		spherical.theta -= dX*3;
+
+		spherical.phi = Math.max( Math.min(spherical.phi, Math.PI/2) , 0.02);
+
+		offset.setFromSpherical( spherical );
+
+		offset.applyQuaternion( quat.clone().inverse() );
+
+		mainCamera.position.copy( offset );
+		mainCamera.lookAt( mainScene.position );
+
+	}
 
 	mouse.x = newX;
 	mouse.y = newY;
