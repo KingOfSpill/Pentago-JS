@@ -25,6 +25,8 @@ var objectInHud, objectinMain;
 
 var board = null;
 
+var loader = new THREE.JSONLoader();
+
 function hole(){
 
 	this.holeViewPosition;
@@ -49,6 +51,7 @@ function init(){
 function Board(quarterGeometry, quarterMaterials){
 
 	this.quarters = new Array();
+	this.base = null;
 
 	this.size = 3.2;
 
@@ -63,7 +66,7 @@ function Quarter(geometry, materials, x, z){
 
 	this.mesh = new THREE.Mesh(geometry, materials);
 
-	this.size = 3.2;
+	this.size = 3.3;
 	this.targetAngle = 0;
 	this.spinSpeed = 0.05;
 	this.x = x;
@@ -104,25 +107,35 @@ function initScene(){
 
 	mainScene = new THREE.Scene();
 
-	var loader = new THREE.JSONLoader();
 	loader.load('./Models/pentago.json', function(geometry, materials){
 		var texture = new THREE.TextureLoader().load( "./Textures/plastic.png" );
-		board = new Board(geometry, new THREE.MeshLambertMaterial({map: texture}) );
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		board = new Board(geometry, new THREE.MeshPhongMaterial({map: texture, specularMap: bump, bumpMap: bump, bumpScale: 0.1, shininess: 5}) );
 		mainScene.add(board.quarters[0].mesh);
 		mainScene.add(board.quarters[1].mesh);
 		mainScene.add(board.quarters[2].mesh);
 		mainScene.add(board.quarters[3].mesh);
-		board.quarters[3].spinLeft();
+
+		loader.load('./Models/base.json', function(geometry, materials){
+			var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+			board.base = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.1, shininess: 5}) );
+			board.base.position.set( 0, -1, 0 );
+			board.base.scale.set( 0.7, 1, 0.7 );
+			mainScene.add( board.base );
+		});
+
 	})
 
 	loader.load('./Models/arrow.json', function(geometry, materials){
 
-		var arrow = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: 'white'}))
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+
+		var arrow = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.1, shininess: 90}))
 		arrow.position.set( 5, 1, 6.2 );
 		arrow.rotation.y = Math.PI/2 + 0.2;
 		mainScene.add(arrow);
 
-		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: 'white'}))
+		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.01, shininess: 90}))
 		arrow2.position.set( 6.2, 1, 5 );
 		arrow2.rotation.y = Math.PI+0.2;
 		arrow2.rotation.x = Math.PI;
@@ -274,6 +287,10 @@ function handleMouse(){
 		else
 			viewObjectInHud( null );
 
+	}else{
+
+		
+		
 	}
 
 	//if( objectInHud != null && objectinMain != null )
@@ -288,7 +305,7 @@ $('html').mousedown( function(e){
 	if( e.which === 1 ){
 		board.quarters[3].spinLeft();
 	}else if( e.which === 2){
-
+		mousedown = true;
 	}else if( e.which ===3){
 		e.preventDefault();
 		board.quarters[3].spinRight();
@@ -304,7 +321,21 @@ document.oncontextmenu = function() {
 	board.quarters[3].spinRight();
 	return false; 
 } , false);*/
-window.addEventListener("mouseup", function(e){ mouseDown = false; } , false);
+
+$('html').mouseup( function(e){
+
+	if( e.which === 1 ){
+
+	}else if( e.which === 2){
+		mousedown = false;
+	}else if( e.which ===3){
+
+		e.preventDefault();
+		return false; 
+
+	}
+
+});
 
 window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
 
