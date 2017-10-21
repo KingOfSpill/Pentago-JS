@@ -19,8 +19,7 @@ var clock = new THREE.Clock();
 
 var muted = false, paused = false;
 
-var rotation = [ 0, 0 ];
-var rotSpeed = 4;
+var left = false, right = false, up = false, down = false;
 
 var objectInHud, objectinMain;
 
@@ -65,13 +64,19 @@ function initScene(){
 
 function viewObjectInHud( object ){
 
-	hudScene.remove(objectInHud);
+	if( object != null && object.id != objectinMain ){
 
-	if( object != null ){
-		objectinMain = object;
+		hudScene.remove(objectInHud);
+		objectinMain = object.id;
 		objectInHud = object.clone();
 		objectInHud.position.set(0,0,0);
 		hudScene.add( objectInHud );
+
+	} else if ( object == null ){
+
+		hudScene.remove(objectInHud);
+		objectinMain = null;
+
 	}
 
 }
@@ -140,14 +145,40 @@ function resizeHUD(){
     
 }
 
-Mousetrap.bind('m', function(){ muted = !muted; }, false);
+//Mousetrap.bind('m', function(){ muted = !muted; }, false);
 
 function render(){
 
 	if(!paused){
 
-		//mainScene.simulate();
+		mainScene.simulate();
 		handleMouse();
+
+	}
+
+	if(objectInHud != null){
+
+		var invQuat = objectInHud.quaternion.inverse();
+		var verticalAxis = new THREE.Vector3(0,1,0);//.applyQuaternion( invQuat );
+		var horizontalAxis = new THREE.Vector3(1,0,0);//.applyQuaternion( invQuat );
+
+		//objectInHud.rotateY( (newX-mouse.x) );
+		//objectInHud.rotateX( -(newY-mouse.y) );
+
+		const rotSpeed = 0.001;
+
+		if(left)
+			objectInHud.rotateOnAxis( verticalAxis, -rotSpeed );
+		else if(right)
+			objectInHud.rotateOnAxis( verticalAxis, rotSpeed );
+
+		if(up)
+			objectInHud.rotateOnAxis( horizontalAxis, -rotSpeed );
+		else if(down)
+			objectInHud.rotateOnAxis( horizontalAxis, rotSpeed );
+
+		objectInHud.__dirtyRotation = true;
+		objectInHud.setAngularVelocity(new THREE.Vector3(0, 0, 0));
 
 	}
 
@@ -175,8 +206,8 @@ function handleMouse(){
 
 	}
 
-	if( objectInHud != null )
-			objectInHud.rotation.copy( objectinMain.rotation );
+	//if( objectInHud != null && objectinMain != null )
+		//objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
 
 }
 
@@ -185,24 +216,45 @@ window.addEventListener("mouseup", function(e){ mouseDown = false; } , false);
 
 window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
 
+window.addEventListener('keyup', handleKeyUp, false);
+window.addEventListener('keydown', handleKeyDown, false);
+
+function handleKeyDown(event){ 
+
+	if( event.keyCode == 37 ){
+		left = true;
+		console.log("left");
+	}else if( event.keyCode == 38 ){
+		up = true;
+		console.log("up");
+	}else if( event.keyCode == 39 ){
+		right = true;
+	}else if( event.keyCode == 40 ){
+		down = true;
+	}
+
+}
+
+function handleKeyUp(event){ 
+
+	if( event.keyCode == 37 ){
+		left = false;
+		console.log("!left");
+	}else if( event.keyCode == 38 ){
+		up = false;
+		console.log("!up");
+	}else if( event.keyCode == 39 ){
+		right = false;
+	}else if( event.keyCode == 40 ){
+		down = false;
+	}
+
+}
+
 function handleMouseMovement(e){
 
 	const newX = ( event.clientX / window.innerWidth ) * 2 - 1;
 	const newY = -( event.clientY / window.innerHeight ) * 2 + 1;
-
-	if(mouseDown && objectinMain != null){
-
-		var invQuat = objectinMain.quaternion.inverse();
-		var verticalAxis = new THREE.Vector3(0,1,0).applyQuaternion( invQuat );
-		var horizontalAxis = new THREE.Vector3(1,0,0).applyQuaternion( invQuat );
-
-		//objectinMain.rotateY( (newX-mouse.x) );
-		//objectinMain.rotateX( -(newY-mouse.y) );
-
-		objectinMain.rotateOnAxis( verticalAxis, (newX-mouse.x)*10 );
-		objectinMain.rotateOnAxis( horizontalAxis, -(newY-mouse.y)*10 );
-
-	}
 
 	mouse.x = newX;
 	mouse.y = newY;
