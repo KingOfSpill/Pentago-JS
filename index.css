@@ -109,10 +109,21 @@ html, body, mainView {
 	padding: 1vw;
 }
 
+#playAI {
+	position: absolute;
+	z-index: 3;
+	top: 50%;
+	width: 15%;
+	left: 42.5%;
+	text-align: center;
+	font-size: 2vw;
+	padding: 1vw;
+}
+
 #howPlay {
 	position: absolute;
 	z-index: 3;
-	top: 70%;
+	top: 75%;
 	width: 15%;
 	left: 42.5%;
 	text-align: center;

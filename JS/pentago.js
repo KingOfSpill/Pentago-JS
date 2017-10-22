@@ -11,7 +11,7 @@ var mouseDown = false;
 var raycaster = new THREE.Raycaster();
 
 var muted = false, paused = true, winner = 0;
-var move = 0, turnMode = false;
+var move = 0, turnMode = false, aiEnabled = false, makingMove = false;
 var hudStone, board = null;
 
 var clickSound, scrapeSound, confirmSound, music;
@@ -89,6 +89,23 @@ function Board(quarterGeometry, quarterMaterials){
 
 	}
 
+	this.randMove = function(){
+
+		while( !this.quarters[Math.floor(Math.random() * 4)].randMove() )
+			continue;
+
+	}
+
+	this.randSpin = function(){
+
+		if( Math.random < 0.5 ){
+			this.quarters[Math.floor(Math.random() * 4)].spinLeft();
+		}else{
+			this.quarters[Math.floor(Math.random() * 4)].spinRight();
+		}
+
+	}
+
 	this.checkForWin = function(){
 
 		var boardArr = this.getBoardArray();
@@ -121,7 +138,23 @@ function Board(quarterGeometry, quarterMaterials){
 
 		}
 
+		// Check that board isn't full
+
+		var zeroesExist = false;
+
+		for( var i = 0; i < 6; i++){
+			for( var j = 0; j < 6; j++){
+				if( boardArr[i][j] === 0 ){
+					zeroesExist = true;
+					break;
+				}
+			}
+		}
+
 		var win = 0, test;
+
+		if( !zeroesExist )
+			win = 3;
 
 		// Check columns
 		for( var i = 0; i < 6; i++){
@@ -293,6 +326,20 @@ function Quarter(geometry, materials, x, z, index){
 
 	}
 
+	this.randMove = function(){
+
+		var count = 0;
+
+		while( !this.stones[Math.floor(Math.random() * 3)][Math.floor(Math.random() * 3)].tryMove() )
+			count++;
+
+		if( count === 9 )
+			return false;
+
+		return true;
+
+	}
+
 	this.handleIntersects = function(){
 
 		if( !turnMode ){
@@ -412,6 +459,15 @@ function Stone( geometry, whiteMaterial, blackMaterial, x, z){
 		}
 
 
+	}
+
+	this.tryMove = function(){
+		if( this.state === 0 ){
+			this.move();
+			return true;
+		}
+
+		return false;
 	}
 
 	this.move = function(){
@@ -610,11 +666,18 @@ function switchTurn(){
 		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
 		var whiteMaterial = new THREE.MeshPhongMaterial({color: 'white', specularMap: bump, bumpScale: 0.2, shininess: 300});
 		hudStone.material = whiteMaterial;
+
+		if( aiEnabled )
+			$('#whoseTurn').html('AI Turn:');
+
+
 	}else if( move == 2 ){
 		move = 1;
 		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
 		var blackMaterial = new THREE.MeshPhongMaterial({color: 'black', specularMap: bump, bumpScale: 0.2, shininess: 300});
 		hudStone.material = blackMaterial;
+
+		$('#whoseTurn').html('Player Turn:');
 	}
 
 	turnMode = !turnMode;
@@ -647,7 +710,16 @@ function render(){
 					switchTurn();
 				}
 
+			if( move == 2 && aiEnabled && !makingMove ){
+				makingMove = true;
+				setTimeout( function(){
+					board.randMove();
+					board.randSpin();
+					switchTurn();
+					makingMove = false;
+				}, 200);
 			}
+		}
 	}else{
 		rotateCamera(mainCamera ,0.001, 0);
 	}
@@ -665,7 +737,7 @@ function render(){
 $('html').mousedown( function(e){
 
 	if( !paused )
-		if( e.which === 1 ){
+		if( e.which === 1 && !makingMove ){
 			raycaster.setFromCamera( mouse, mainCamera );
 			board.handleIntersects();
 			board.updateTurnMode();
@@ -686,9 +758,7 @@ document.oncontextmenu = function() {
 $('html').mouseup( function(e){
 
 	if( !paused )
-		if( e.which === 1 ){
-
-		}else if( e.which === 2 ){
+		if( e.which === 2 ){
 			mouseDown = false;
 		}else if( e.which === 3 ){
 			mouseDown = false;
@@ -732,6 +802,28 @@ $(document).ready(function(){
 
 	});
 
+	$('#playAI').click( function(){
+
+		if( !muted )
+			confirmSound.play();
+		music.volume = 0.3;
+
+		if( winner == 0 ){
+
+			$('#logo').hide(120);
+			$('#playAI').hide(120);
+			$('#playAgain').hide(120, function(){
+				$('#playAgain').html("PLAY AGAIN?");
+				paused = false;
+			});
+			$('#howPlay').hide(120);
+			aiEnabled = true;
+			switchTurn();
+
+		}
+
+	}.bind(this));
+
 	$('#playAgain').click( function(){
 
 		if( !muted )
@@ -741,6 +833,7 @@ $(document).ready(function(){
 		if( winner == 0 ){
 
 			$('#logo').hide(120);
+			$('#playAI').hide(120);
 			$('#playAgain').hide(120, function(){
 				$('#playAgain').html("PLAY AGAIN?");
 				paused = false;
