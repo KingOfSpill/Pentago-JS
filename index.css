@@ -46,10 +46,51 @@ html, body, mainView {
 	margin: 0px;
 }
 
+#close {
+	position: absolute;
+	z-index: 5;
+	top: 2%;
+	right: 2%;
+	width: 10%;
+	font-family: Sans-Serif;
+	text-align: center;
+	font-size: 2vw;
+	padding: 0px;
+	margin: 0px;
+}
+
+#infoWindow {
+	position: absolute;
+	z-index: 4;
+	top: 15%;
+	left: 15%;
+	width: 70%;
+	height: 70%;
+	font-family: Sans-Serif;
+	text-align: center;
+	font-size: 2.5vw;
+	padding: 2%;
+	margin: 0px;
+	background-color: #dedede;
+	color: #f44336;
+	border-radius: 2vw;
+}
+
 #playAgain {
 	position: absolute;
 	z-index: 3;
 	top: 60%;
+	width: 15%;
+	left: 42.5%;
+	text-align: center;
+	font-size: 2vw;
+	padding: 1vw;
+}
+
+#howPlay {
+	position: absolute;
+	z-index: 3;
+	top: 70%;
 	width: 15%;
 	left: 42.5%;
 	text-align: center;

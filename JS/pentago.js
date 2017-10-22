@@ -721,6 +721,16 @@ $('html').mouseup( function(e){
 });
 $(document).ready(function(){
 
+	$('#infoWindow').hide();
+
+	$('#howPlay').click( function(){
+		$('#infoWindow').show(120);
+	})
+
+	$('#close').click( function(){
+		$('#infoWindow').hide(120);
+	})
+
 	$('#muteImg').click( function(){
 
 		if( muted ){
@@ -751,6 +761,7 @@ $(document).ready(function(){
 				$('#playAgain').html("PLAY AGAIN?");
 				paused = false;
 			});
+			$('#howPlay').hide(120);
 			
 
 		}else
