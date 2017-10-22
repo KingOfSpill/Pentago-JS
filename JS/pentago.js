@@ -493,14 +493,27 @@ function initScene(){
 	})
 
 	loader.load('./Models/table.json', function(geometry, materials){
-
+		var bump = new THREE.TextureLoader().load( './Textures/woodBump.jpg' );
 		var texture = new THREE.TextureLoader().load( './Textures/wood.jpg' );
 
-		var table = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({map: texture, shininess: 90}))
+		var table = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({map: texture, bumpMap: bump, shininess: 10}))
 		table.recieveShadow = true;
 		table.position.set( 0, -2, 0 );
 		mainScene.add(table);
 	})
+
+	var cube = new THREE.CubeTextureLoader();
+	cube.setPath( './Textures/MountainPath/' );
+
+	var textureCube = cube.load( [
+		'posx.jpg', 'negx.jpg',
+		'posy.jpg', 'negy.jpg',
+		'posz.jpg', 'negz.jpg'
+	] );
+
+	mainScene.background = textureCube;
+
+	//var material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: textureCube } );
 
 	hudScene = new THREE.Scene();
 
@@ -516,17 +529,21 @@ function initScene(){
 }
 
 function initLights(){
-    var spotLight = new THREE.SpotLight( 0xffffdd );
+    var spotLight = new THREE.SpotLight( 0xdedecc );
 	spotLight.position.set( -20, 20, 20 );
 
 	spotLight.castShadow = true;
 
 	spotLight.shadow.mapSize.width = 1024;
 	spotLight.shadow.mapSize.height = 1024;
+	spotLight.shadow.radius = 2;
 
 	spotLight.shadow.camera.near = 500;
 	spotLight.shadow.camera.far = 4000;
 	spotLight.shadow.camera.fov = 30;
+
+	var ambientLight = new THREE.AmbientLight( 0x111105 );
+	mainScene.add( ambientLight );
 
 	mainScene.add( spotLight );
 
