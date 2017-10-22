@@ -724,10 +724,14 @@ $(document).ready(function(){
 	$('#infoWindow').hide();
 
 	$('#howPlay').click( function(){
+		if( !muted )
+			confirmSound.play();
 		$('#infoWindow').show(120);
 	})
 
 	$('#close').click( function(){
+		if( !muted )
+			confirmSound.play();
 		$('#infoWindow').hide(120);
 	})
 
@@ -752,7 +756,7 @@ $(document).ready(function(){
 
 		if( !muted )
 			confirmSound.play();
-		music.volume = 0.5;
+		music.volume = 0.3;
 
 		if( winner == 0 ){
 
