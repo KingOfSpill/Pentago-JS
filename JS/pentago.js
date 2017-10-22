@@ -879,6 +879,27 @@ function handleMouseMovement(e){
 	
 }
 
+document.addEventListener( 'wheel', function(e){
+
+	if( !paused )
+		if( e.deltaY < 0 ){
+			var spherical = new THREE.Spherical();
+			spherical.setFromVector3( mainCamera.position );
+			spherical.radius = 10;
+			var mis = new THREE.Vector3();
+			mis.setFromSpherical(spherical);
+			mainCamera.position.lerp( mis , 0.1 );
+		}else{
+			var spherical = new THREE.Spherical();
+			spherical.setFromVector3( mainCamera.position );
+			spherical.radius = 40;
+			var max = new THREE.Vector3();
+			max.setFromSpherical(spherical);
+			mainCamera.position.lerp( max , 0.1 );
+		}
+
+}.bind(this) );
+
 function rotateCamera(camera , dX, dY){
 	var quat = new THREE.Quaternion().setFromUnitVectors( camera.up, new THREE.Vector3( 0, 1, 0 ) );
 	var offset = camera.position.clone();
