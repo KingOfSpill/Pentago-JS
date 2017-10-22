@@ -21,3 +21,85 @@ html, body, mainView {
 	margin: 0px;
 
 }
+
+#winDisplay {
+	position: absolute;
+	z-index: 3;
+	top: 30%;
+	width: 100%;
+	font-family: Sans-Serif;
+	text-align: center;
+	font-size: 8vw;
+	padding: 0px;
+	margin: 0px;
+}
+
+#logo {
+	position: absolute;
+	z-index: 3;
+	top: 25%;
+	width: 100%;
+	font-family: Sans-Serif;
+	text-align: center;
+	font-size: 10vw;
+	padding: 0px;
+	margin: 0px;
+}
+
+#playAgain {
+	position: absolute;
+	z-index: 3;
+	top: 60%;
+	width: 15%;
+	left: 42.5%;
+	text-align: center;
+	font-size: 2vw;
+	padding: 1vw;
+}
+
+.button {
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    border: none;
+	border-radius: 10vw;
+	background-color: #f44336;
+    color: #dedede;
+}
+
+.button:hover {
+	color: #f44336;
+	background: #fff;
+}
+
+.button:active {
+	background-color: #f44336;
+    color: #dedede;
+}
+
+.textWBorder {
+	color: #f44336;
+	text-shadow: 1px 1px 0 #dedede,
+    -1px 1px 0 #dedede,
+    1px -1px 0 #dedede,
+    -1px -1px 0 #dedede,
+    0px 1px 0 #dedede,
+    0px -1px 0 #dedede,
+    -1px 0px 0 #dedede,
+    1px 0px 0 #dedede,
+    2px 2px 0 #dedede,
+    -2px 2px 0 #dedede,
+    2px -2px 0 #dedede,
+    -2px -2px 0 #dedede,
+    0px 2px 0 #dedede,
+    0px -2px 0 #dedede,
+    -2px 0px 0 #dedede,
+    2px 0px 0 #dedede,
+    1px 2px 0 #dedede,
+    -1px 2px 0 #dedede,
+    1px -2px 0 #dedede,
+    -1px -2px 0 #dedede,
+    2px 1px 0 #dedede,
+    -2px 1px 0 #dedede,
+    2px -1px 0 #dedede,
+    -2px -1px 0 #dedede;
+}

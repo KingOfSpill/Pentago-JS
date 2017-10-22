@@ -17,7 +17,7 @@ var hudCamera, hudRenderer;
 
 var clock = new THREE.Clock();
 
-var muted = false, paused = false;
+var muted = false, paused = true, winner = 0;
 
 var left = false, right = false, up = false, down = false;
 
@@ -56,10 +56,10 @@ function Board(quarterGeometry, quarterMaterials){
 
 	this.size = 3.2;
 
-	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials, 1, -1);
-	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials, -1, -1);
-	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials, -1, 1);
-	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials, 1, 1);
+	this.quarters[0] = new Quarter(quarterGeometry, quarterMaterials, -1, -1, 0);
+	this.quarters[1] = new Quarter(quarterGeometry, quarterMaterials, -1, 1, 1);
+	this.quarters[2] = new Quarter(quarterGeometry, quarterMaterials, 1, 1, 2);
+	this.quarters[3] = new Quarter(quarterGeometry, quarterMaterials, 1, -1, 3);
 
 	mainScene.add(this.quarters[0].mesh);
 	mainScene.add(this.quarters[1].mesh);
@@ -78,10 +78,29 @@ function Board(quarterGeometry, quarterMaterials){
 
 	}.bind(this));
 
+	this.updateSpin = function(){
+
+		var noSpin = false;
+
+		for( var i = 0; i < 4; i++ )
+			noSpin = noSpin || this.quarters[i].spin();
+
+		return noSpin;
+
+	}
+
+	this.updateTurnMode = function(){
+
+		for( var i = 0; i < 4; i++ )
+			this.quarters[i].updateTurnMode();
+
+	}
+
 	this.handleIntersects = function(){
 
 		for( var i = 0; i < 4; i++ )
-			this.quarters[i].handleIntersects();
+			if( this.quarters[i].handleIntersects() )
+				break;
 
 	}
 
@@ -97,13 +116,130 @@ function Board(quarterGeometry, quarterMaterials){
 
 	}
 
+	this.checkForWin = function(){
+
+		var boardArr = this.getBoardArray();
+
+		function checkLine( iStart, jStart, iStep, jStep, totalSteps ){
+
+			var i = iStart, j = jStart;
+
+			var test = boardArr[i][j];
+			var count = 1;
+
+			for( var k = 1; k < totalSteps; k++){
+				i += iStep;
+				j += jStep;
+				if( test === boardArr[i][j] ){
+					test = boardArr[i][j];
+					count++;
+					if( count === 5 )
+						break;
+				}else{
+					test = boardArr[i][j];
+					count = 1;
+				}
+			}
+
+			if( count >= 5 )
+				return test;
+			else
+				return 0;
+
+		}
+
+		var win = 0, test;
+
+		// Check columns
+		for( var i = 0; i < 6; i++){
+			test = checkLine( i, 0, 0, 1, 6);
+			if( win == 0 )
+				win = test;
+			else if( win != 0 && win != test && test != 0 )
+				win = 3;
+		}
+
+		// Check rows
+		for( var i = 0; i < 6; i++){
+			test = checkLine( 0, i, 1, 0, 6);
+			if( win == 0 )
+				win = test;
+			else if( win != 0 && win != test && test != 0 )
+				win = 3;
+		}
+
+		// Check Diagonals
+		test = checkLine( 1, 0, 1, 1, 5 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		test = checkLine( 0, 0, 1, 1, 6 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		test = checkLine( 0, 1, 1, 1, 5 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		test = checkLine( 0, 4, 1, -1, 5 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		test = checkLine( 0, 5, 1, -1, 6 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		test = checkLine( 1, 5, 1, -1, 5 );
+		if( win == 0 )
+			win = test;
+		else if( win != 0 && win != test && test != 0 )
+			win = 3;
+
+		winner = win;
+
+		return win;
+
+
+	}
+
+	this.getBoardArray = function(){
+
+		var array = new Array();
+
+		for( var i = 0; i < 6; i++ )
+			array[i] = new Array();
+
+		for( var i = 0; i < 3; i++ )
+			for( var j = 0; j < 3; j++){
+				array[i][j] = this.quarters[0].stones[i][j].state;
+				array[i+3][j] = this.quarters[1].stones[i][j].state;
+				array[i+3][j+3] = this.quarters[2].stones[i][j].state;
+				array[i][j+3] = this.quarters[3].stones[i][j].state;
+			}
+
+		return array;
+
+	}
+
 }
 
-function Quarter(geometry, materials, x, z){
+function Quarter(geometry, materials, x, z, index){
 
 	this.mesh = new THREE.Mesh(geometry, materials);
 	this.mesh.castShadow = true;
 	this.mesh.name = "quarter";
+
+	this.index = index;
 
 	this.size = 3.3;
 	this.targetAngle = 0;
@@ -119,6 +255,52 @@ function Quarter(geometry, materials, x, z){
 	this.mesh.position.set(this.x*this.size,0,this.z*this.size);
 
 	loader.load('./Models/stone.json', function(geometry, materials){ this.createStones(geometry, materials); }.bind(this));
+	loader.load('./Models/arrow.json', function(geometry, materials){ this.createArrows(geometry, materials); }.bind(this));
+
+	this.tranparentMaterial = new THREE.MeshBasicMaterial({visible: false});
+	this.whiteMaterial = new THREE.MeshPhongMaterial({color: 'white', shininess: 300});
+	this.leftArrow
+	this.rightArrow
+
+	this.createArrows = function(geometry, materials){
+
+		this.leftArrow = new THREE.Mesh(geometry, this.tranparentMaterial)
+		this.leftArrow.position.copy( this.mesh.position );
+		this.leftArrow.position.y += 1;
+		this.leftArrow.rotation.y = 0.4 + (this.index-1)*Math.PI/2;
+		if( this.index % 2 == 0 ){
+
+			this.leftArrow.position.z += 4 * this.z;
+			this.leftArrow.position.x += 2.5 * this.x;
+
+		}else{
+
+			this.leftArrow.position.x += 4 * this.x;
+			this.leftArrow.position.z += 2.5 * this.z;
+
+		}
+		this.leftArrow.scale.set(2,2,2);
+		mainScene.add(this.leftArrow);
+
+		this.rightArrow = new THREE.Mesh(geometry, this.tranparentMaterial)
+		this.rightArrow.position.copy( this.mesh.position );
+		this.rightArrow.position.y += 1;
+		if( this.index % 2 == 1 ){
+
+			this.rightArrow.position.z += 4 * this.z;
+			this.rightArrow.position.x += 2.5 * this.x;
+
+		}else{
+
+			this.rightArrow.position.x += 4 * this.x;
+			this.rightArrow.position.z += 2.5 * this.z;
+
+		}
+		this.rightArrow.rotation.y = 0.4 - (this.index*Math.PI/2);
+		this.rightArrow.rotation.x = Math.PI;
+		this.rightArrow.scale.set(2,2,2);
+		mainScene.add(this.rightArrow);
+	}
 
 	this.createStones = function(geometry, materials){
 
@@ -129,7 +311,7 @@ function Quarter(geometry, materials, x, z){
 		for( var i = 0; i < 3; i++ ){
 			for( var j = 0; j < 3; j++ ){
 
-				var stone = new Stone(geometry, whiteMaterial, blackMaterial, i, j);
+				var stone = new Stone(geometry, whiteMaterial, blackMaterial, j, i);
 				this.mesh.add(stone.mesh);
 				this.stones[i][j] = stone;
 
@@ -140,19 +322,45 @@ function Quarter(geometry, materials, x, z){
 
 	this.handleIntersects = function(){
 
-		for( var i = 0; i < 3; i++ )
-			for( var j = 0; j < 3; j++ )
-				this.stones[i][j].handleIntersect();
+		if( !turnMode ){
+
+			for( var i = 0; i < 3; i++ )
+				for( var j = 0; j < 3; j++ )
+					if( this.stones[i][j].handleIntersect() )
+						return true;
+
+		}else{
+
+			if( raycaster.intersectObject( this.leftArrow ).length > 0 ){
+				this.spinLeft();
+				switchTurn();
+			}else if( raycaster.intersectObject( this.rightArrow ).length > 0 ){
+				this.spinRight();
+				switchTurn();
+			}
+
+		}
+
+
+
+	}
+
+	this.updateTurnMode = function(){
+
+		if( turnMode ){
+			this.rightArrow.material = this.whiteMaterial;
+			this.leftArrow.material = this.whiteMaterial;
+		}else{
+			this.rightArrow.material = this.tranparentMaterial;
+			this.leftArrow.material = this.tranparentMaterial;
+		}
 
 	}
 
 	this.findStoneById = function( id ){
 
-		console.log('id:' + id);
-
 		for( var i = 0; i < 3; i++ )
 			for( var j = 0; j < 3; j++ ){
-				console.log( 'stoneID:' + this.stones[i][j].mesh.id );
 				if( this.stones[i][j].mesh.id == id ){
 					return this.stones[i][j];
 				}
@@ -163,21 +371,44 @@ function Quarter(geometry, materials, x, z){
 	}
 
 	this.spinLeft = function( ){
-		this.targetAngle += Math.PI/2;
+
+		this.targetAngle -= Math.PI/2;
+
+		var rotated = new Array();
+
+		rotated[0] = [ this.stones[2][0], this.stones[1][0], this.stones[0][0] ];
+		rotated[1] = [ this.stones[2][1], this.stones[1][1], this.stones[0][1] ];
+		rotated[2] = [ this.stones[2][2], this.stones[1][2], this.stones[0][2] ];
+
+		this.stones = rotated;
+
 	}
 
 	this.spinRight = function( ){
-		this.targetAngle -= Math.PI/2;
+
+		this.targetAngle += Math.PI/2;
+
+		var rotated = new Array();
+
+		rotated[0] = [ this.stones[0][2], this.stones[1][2], this.stones[2][2] ];
+		rotated[1] = [ this.stones[0][1], this.stones[1][1], this.stones[2][1] ];
+		rotated[2] = [ this.stones[0][0], this.stones[1][0], this.stones[2][0] ];
+
+		this.stones = rotated;
 	}
 
 	this.spin = function(){
 
 		if( this.targetAngle > this.mesh.rotation.y )
 			this.mesh.rotation.y += Math.min(this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
-		else
+		else if( this.targetAngle < this.mesh.rotation.y )
 			this.mesh.rotation.y += Math.max(-this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
+		else
+			return false;
 
 		this.setPositionFromAngle();
+
+		return true;
 
 	}
 
@@ -206,18 +437,19 @@ function Stone( geometry, whiteMaterial, blackMaterial, x, z){
 
 	this.handleIntersect = function(){
 
-		if( raycaster.intersectObject( this.mesh ).length > 0 )
+		if( raycaster.intersectObject( this.mesh ).length > 0 && this.state === 0 ){
 			this.move();
+			return true;
+		}else{
+			return false;
+		}
+
 
 	}
 
 	this.move = function(){
-
-		if( turnMode == false ){
-			this.setColor(move);
-			this.turnMode = true;
-		}
-
+		this.setColor(move);
+		turnMode = true;
 	}
 
 	this.setColor = function( newColor ){
@@ -254,22 +486,6 @@ function initScene(){
 		table.recieveShadow = true;
 		table.position.set( 0, -2, 0 );
 		mainScene.add(table);
-	})
-
-	loader.load('./Models/arrow.json', function(geometry, materials){
-
-		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
-
-		var arrow = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.1, shininess: 90}))
-		arrow.position.set( 5, 1, 6.2 );
-		arrow.rotation.y = Math.PI/2 + 0.2;
-		mainScene.add(arrow);
-
-		var arrow2 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 'white', bumpMap: bump, bumpScale: 0.01, shininess: 90}))
-		arrow2.position.set( 6.2, 1, 5 );
-		arrow2.rotation.y = Math.PI+0.2;
-		arrow2.rotation.x = Math.PI;
-		mainScene.add(arrow2);
 	})
 
 	hudScene = new THREE.Scene();
@@ -378,17 +594,41 @@ function resizeHUD(){
     
 }
 
-//Mousetrap.bind('m', function(){ muted = !muted; }, false);
+function switchTurn(){
+
+	if( move == 1 )
+		move = 2;
+	else if( move == 2 )
+		move = 1;
+
+	turnMode = !turnMode;
+
+	board.updateTurnMode();
+	board.checkForWin();
+
+}
 
 function render(){
 
 	if(!paused){
-
-		handleMouse();
-
 		if( board != null )
-			board.quarters[3].spin();
-
+			if( !board.updateSpin() )
+				if( winner == 1 ){
+					$('#winDisplay').html('Black Wins!');
+					$('#winDisplay').show(120);
+					$('#playAgain').show(120);
+					paused = true;
+				}else if( winner == 2 ){
+					$('#winDisplay').html('White Wins!');
+					$('#winDisplay').show(120);
+					$('#playAgain').show(120);
+					paused = true;
+				}else if( winner == 3 ){
+					$('#winDisplay').html('Draw!');
+					$('#winDisplay').show(120);
+					$('#playAgain').show(120);
+					paused = true;
+				}
 	}
 
 	if(objectInHud != null && objectinMain != null){
@@ -407,49 +647,19 @@ function render(){
 
 }
 
-function handleMouse(){
-
-		/*raycaster.setFromCamera( mouse, mainCamera );
-		var intersects = raycaster.intersectObjects( mainScene.children );
-
-		if( intersects.length > 0)
-			viewObjectInHud( intersects[0].object );
-		else
-			viewObjectInHud( null );*/
-
-	//if( objectInHud != null && objectinMain != null )
-		//objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
-
-}
-
-//window.addEventListener("mousedown", function(e){ board.quarters[3].spinLeft(); } , false);
-
 $('html').mousedown( function(e){
 
-	if( e.which === 1 ){
-
-		raycaster.setFromCamera( mouse, mainCamera );
-
-		board.handleIntersects();
-
-		/*var intersects = raycaster.intersectObjects( mainScene.children );
-
-		for( var i = 0; i < intersects.length; i++ )
-			if( intersects[i].object.name = "stone" ){
-				var stone = board.findStoneById( intersects[i].object.id );
-				if( stone != null )
-					stone.setColor(1);
-			}*/
-
-		//board.quarters[3].spinLeft();
-
-	}else if( e.which === 2){
-		mouseDown = true;
-	}else if( e.which ===3){
-		e.preventDefault();
-		board.quarters[3].spinRight();
-		return false; 
-	}
+	if( !paused )
+		if( e.which === 1 ){
+			raycaster.setFromCamera( mouse, mainCamera );
+			board.handleIntersects();
+			board.updateTurnMode();
+		}else if( e.which === 2){
+			mouseDown = true;
+		}else if( e.which ===3){
+			e.preventDefault();
+			return false; 
+		}
 
 });
 document.oncontextmenu = function() {
@@ -463,18 +673,36 @@ document.oncontextmenu = function() {
 
 $('html').mouseup( function(e){
 
-	if( e.which === 1 ){
+	if( !paused )
+		if( e.which === 1 ){
 
-	}else if( e.which === 2){
-		mouseDown = false;
-	}else if( e.which ===3){
+		}else if( e.which === 2){
+			mouseDown = false;
+		}else if( e.which ===3){
 
-		e.preventDefault();
-		return false; 
+			e.preventDefault();
+			return false; 
 
-	}
+		}
 
 });
+$(document).ready(function(){
+	$('#playAgain').click( function(){
+
+		if( winner == 0 ){
+
+			$('#logo').hide(120);
+			$('#playAgain').hide(120, function(){
+				$('#playAgain').html("PLAY AGAIN?");
+				paused = false;
+			});
+			
+
+		}else
+			location.reload();
+
+	}.bind(this));
+}.bind(this));
 
 window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
 
@@ -485,10 +713,8 @@ function handleKeyDown(event){
 
 	if( event.keyCode == 37 ){
 		left = true;
-		console.log("left");
 	}else if( event.keyCode == 38 ){
 		up = true;
-		console.log("up");
 	}else if( event.keyCode == 39 ){
 		right = true;
 	}else if( event.keyCode == 40 ){
@@ -501,10 +727,8 @@ function handleKeyUp(event){
 
 	if( event.keyCode == 37 ){
 		left = false;
-		console.log("!left");
 	}else if( event.keyCode == 38 ){
 		up = false;
-		console.log("!up");
 	}else if( event.keyCode == 39 ){
 		right = false;
 	}else if( event.keyCode == 40 ){
