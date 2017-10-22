@@ -26,6 +26,8 @@ var objectInHud, objectinMain;
 var board = null;
 var move = 1, turnMode = false;
 
+var clickSound, scrapeSound, confirmSound, music;
+
 var loader = new THREE.JSONLoader();
 
 function hole(){
@@ -84,6 +86,9 @@ function Board(quarterGeometry, quarterMaterials){
 
 		for( var i = 0; i < 4; i++ )
 			noSpin = noSpin || this.quarters[i].spin();
+
+		if( !noSpin )
+			scrapeSound.pause();
 
 		return noSpin;
 
@@ -372,6 +377,9 @@ function Quarter(geometry, materials, x, z, index){
 
 	this.spinLeft = function( ){
 
+		if( !muted )
+			scrapeSound.play();
+
 		this.targetAngle -= Math.PI/2;
 
 		var rotated = new Array();
@@ -385,6 +393,9 @@ function Quarter(geometry, materials, x, z, index){
 	}
 
 	this.spinRight = function( ){
+
+		if( !muted )
+			scrapeSound.play();
 
 		this.targetAngle += Math.PI/2;
 
@@ -403,8 +414,9 @@ function Quarter(geometry, materials, x, z, index){
 			this.mesh.rotation.y += Math.min(this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
 		else if( this.targetAngle < this.mesh.rotation.y )
 			this.mesh.rotation.y += Math.max(-this.spinSpeed,this.targetAngle-this.mesh.rotation.y);
-		else
+		else{
 			return false;
+		}
 
 		this.setPositionFromAngle();
 
@@ -448,6 +460,8 @@ function Stone( geometry, whiteMaterial, blackMaterial, x, z){
 	}
 
 	this.move = function(){
+		if( !muted )
+			clickSound.play();
 		this.setColor(move);
 		turnMode = true;
 	}
@@ -531,6 +545,22 @@ function viewObjectInHud( object ){
 
 function initAudio(){
 
+	// Found at https://freesound.org/people/lebcraftlp/sounds/192278/
+	clickSound = new Audio('Sounds/click.wav');
+
+	// Found at https://freesound.org/people/AntumDeluge/sounds/188055/
+	scrapeSound = new Audio('Sounds/scrape.wav');
+	scrapeSound.loop = true;
+
+	// Found at https://freesound.org/people/InspectorJ/sounds/403018/
+	confirmSound = new Audio('Sounds/confirmation.wav');
+
+	// Found at https://freesound.org/people/carpuzi/sounds/382327/
+	music = new Audio('Sounds/music.wav');
+	music.loop = true;
+	if( !muted )
+		music.play();
+
 }
 
 function initMain(){
@@ -612,23 +642,26 @@ function render(){
 
 	if(!paused){
 		if( board != null )
-			if( !board.updateSpin() )
-				if( winner == 1 ){
+			if( !board.updateSpin() ){
+
+				if( winner == 1 )
 					$('#winDisplay').html('Black Wins!');
-					$('#winDisplay').show(120);
-					$('#playAgain').show(120);
-					paused = true;
-				}else if( winner == 2 ){
+				else if( winner == 2 )
 					$('#winDisplay').html('White Wins!');
-					$('#winDisplay').show(120);
-					$('#playAgain').show(120);
-					paused = true;
-				}else if( winner == 3 ){
+				else if( winner == 3 )
 					$('#winDisplay').html('Draw!');
+
+				if( winner != 0 ){
+					if( !muted )
+						confirmSound.play();
 					$('#winDisplay').show(120);
 					$('#playAgain').show(120);
 					paused = true;
 				}
+
+			}
+	}else{
+		rotateCamera(0.001, 0);
 	}
 
 	if(objectInHud != null && objectinMain != null){
@@ -687,7 +720,29 @@ $('html').mouseup( function(e){
 
 });
 $(document).ready(function(){
+
+	$('#muteImg').click( function(){
+
+		if( muted ){
+			music.play();
+			$('#muteImg').attr("src", '/Textures/Antu_audio-on.svg');
+		}else{
+			music.pause();
+			clickSound.pause();
+			scrapeSound.pause();
+			confirmSound.pause();
+			$('#muteImg').attr("src", '/Textures/Antu_audio-off.svg');
+		}
+
+		muted = !muted;
+
+	});
+
 	$('#playAgain').click( function(){
+
+		if( !muted )
+			confirmSound.play();
+		music.volume = 0.5;
 
 		if( winner == 0 ){
 
@@ -747,29 +802,33 @@ function handleMouseMovement(e){
 
 	if(mouseDown){
 
-		var quat = new THREE.Quaternion().setFromUnitVectors( mainCamera.up, new THREE.Vector3( 0, 1, 0 ) );
-		var offset = mainCamera.position.clone();
-
-		offset.applyQuaternion( quat );
-
-		var spherical = new THREE.Spherical();
-		spherical.setFromVector3( offset );
-
-		spherical.phi += dY*3;
-		spherical.theta -= dX*3;
-
-		spherical.phi = Math.max( Math.min(spherical.phi, Math.PI/2) , 0.02);
-
-		offset.setFromSpherical( spherical );
-
-		offset.applyQuaternion( quat.clone().inverse() );
-
-		mainCamera.position.copy( offset );
-		mainCamera.lookAt( mainScene.position );
+		rotateCamera(dX, dY);
 
 	}
 
 	mouse.x = newX;
 	mouse.y = newY;
 	
+}
+
+function rotateCamera(dX, dY){
+	var quat = new THREE.Quaternion().setFromUnitVectors( mainCamera.up, new THREE.Vector3( 0, 1, 0 ) );
+	var offset = mainCamera.position.clone();
+
+	offset.applyQuaternion( quat );
+
+	var spherical = new THREE.Spherical();
+	spherical.setFromVector3( offset );
+
+	spherical.phi += dY*3;
+	spherical.theta -= dX*3;
+
+	spherical.phi = Math.max( Math.min(spherical.phi, Math.PI/2) , 0.02);
+
+	offset.setFromSpherical( spherical );
+
+	offset.applyQuaternion( quat.clone().inverse() );
+
+	mainCamera.position.copy( offset );
+	mainCamera.lookAt( mainScene.position );
 }

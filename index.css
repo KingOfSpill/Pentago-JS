@@ -57,6 +57,17 @@ html, body, mainView {
 	padding: 1vw;
 }
 
+#muteImg {
+	position: absolute;
+	z-index: 3;
+	top: 0%;
+	right: 0%;
+	width: 10%;
+	height: 10%;
+	margin: 0px;
+	padding: 0px;
+}
+
 .button {
     -webkit-transition-duration: 0.4s; /* Safari */
     transition-duration: 0.4s;
