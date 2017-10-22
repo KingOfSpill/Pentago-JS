@@ -1,41 +1,21 @@
 'use strict';
 
-Physijs.scripts.worker = 'Libs/physijs_worker.js';
-Physijs.scripts.ammo = 'ammo.js';
-
 window.onload = init;
 
 var mainScene, hudScene;
+var mainCamera, mainRenderer;
+var hudCamera, hudRenderer;
 
 var mouse = new THREE.Vector2();
 var mouseDown = false;
 var raycaster = new THREE.Raycaster();
 
-var mainCamera, mainRenderer;
-
-var hudCamera, hudRenderer;
-
-var clock = new THREE.Clock();
-
 var muted = false, paused = true, winner = 0;
-
-var left = false, right = false, up = false, down = false;
-
-var objectInHud, objectinMain, hudStone;
-
-var board = null;
 var move = 0, turnMode = false;
+var hudStone, board = null;
 
 var clickSound, scrapeSound, confirmSound, music;
-
 var loader = new THREE.JSONLoader();
-
-function hole(){
-
-	this.holeViewPosition;
-	this.holeMesh;
-
-}
 
 function init(){
 
@@ -106,18 +86,6 @@ function Board(quarterGeometry, quarterMaterials){
 		for( var i = 0; i < 4; i++ )
 			if( this.quarters[i].handleIntersects() )
 				break;
-
-	}
-
-	this.findStoneById = function( id ){
-
-		for( var i = 0; i < 4; i++ ){
-			var stone = this.quarters[i].findStoneById( id );
-			if( stone != null )
-				return stone;
-		}
-
-		return null;
 
 	}
 
@@ -362,19 +330,6 @@ function Quarter(geometry, materials, x, z, index){
 
 	}
 
-	this.findStoneById = function( id ){
-
-		for( var i = 0; i < 3; i++ )
-			for( var j = 0; j < 3; j++ ){
-				if( this.stones[i][j].mesh.id == id ){
-					return this.stones[i][j];
-				}
-			}
-
-		return null;
-
-	}
-
 	this.spinLeft = function( ){
 
 		if( !muted )
@@ -550,25 +505,6 @@ function initLights(){
 	hudScene.add( spotLight.clone() );
 }
 
-function viewObjectInHud( object ){
-
-	if( object != null && object.id != objectinMain ){
-
-		hudScene.remove(objectInHud);
-		objectinMain = object.id;
-		objectInHud = object.clone();
-		objectInHud.position.set(0,0,0);
-		hudScene.add( objectInHud );
-
-	} else if ( object == null ){
-
-		hudScene.remove(objectInHud);
-		objectinMain = null;
-
-	}
-
-}
-
 function initAudio(){
 
 	// Found at https://freesound.org/people/lebcraftlp/sounds/192278/
@@ -716,12 +652,6 @@ function render(){
 		rotateCamera(mainCamera ,0.001, 0);
 	}
 
-	if(objectInHud != null && objectinMain != null){
-
-		objectInHud.rotation.copy( mainScene.getObjectById(objectinMain).rotation );
-
-	}
-
 	resizeMain();
 	mainRenderer.render( mainScene, mainCamera );
 
@@ -748,14 +678,10 @@ $('html').mousedown( function(e){
 		}
 
 });
+
 document.oncontextmenu = function() {
     return false;
 }
-/*window.addEventListener("contextmenu", function(e){ 
-	e.preventDefault();
-	board.quarters[3].spinRight();
-	return false; 
-} , false);*/
 
 $('html').mouseup( function(e){
 
@@ -772,6 +698,7 @@ $('html').mouseup( function(e){
 		}
 
 });
+
 $(document).ready(function(){
 
 	$('#infoWindow').hide();
@@ -825,40 +752,10 @@ $(document).ready(function(){
 			location.reload();
 
 	}.bind(this));
+
 }.bind(this));
 
 window.addEventListener("mousemove", function(e){ handleMouseMovement(e); } , false);
-
-window.addEventListener('keyup', handleKeyUp, false);
-window.addEventListener('keydown', handleKeyDown, false);
-
-function handleKeyDown(event){ 
-
-	if( event.keyCode == 37 ){
-		left = true;
-	}else if( event.keyCode == 38 ){
-		up = true;
-	}else if( event.keyCode == 39 ){
-		right = true;
-	}else if( event.keyCode == 40 ){
-		down = true;
-	}
-
-}
-
-function handleKeyUp(event){ 
-
-	if( event.keyCode == 37 ){
-		left = false;
-	}else if( event.keyCode == 38 ){
-		up = false;
-	}else if( event.keyCode == 39 ){
-		right = false;
-	}else if( event.keyCode == 40 ){
-		down = false;
-	}
-
-}
 
 function handleMouseMovement(e){
 
@@ -868,11 +765,8 @@ function handleMouseMovement(e){
 	const dX = newX - mouse.x;
 	const dY = newY - mouse.y;
 
-	if(mouseDown){
-
+	if(mouseDown)
 		rotateCamera(mainCamera, dX, dY);
-
-	}
 
 	mouse.x = newX;
 	mouse.y = newY;
