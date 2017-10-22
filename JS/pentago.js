@@ -687,9 +687,10 @@ $('html').mousedown( function(e){
 			raycaster.setFromCamera( mouse, mainCamera );
 			board.handleIntersects();
 			board.updateTurnMode();
-		}else if( e.which === 2){
+		}else if( e.which === 2 ){
 			mouseDown = true;
-		}else if( e.which ===3){
+		}else if( e.which === 3 ){
+			mouseDown = true;
 			e.preventDefault();
 			return false; 
 		}
@@ -709,10 +710,10 @@ $('html').mouseup( function(e){
 	if( !paused )
 		if( e.which === 1 ){
 
-		}else if( e.which === 2){
+		}else if( e.which === 2 ){
 			mouseDown = false;
-		}else if( e.which ===3){
-
+		}else if( e.which === 3 ){
+			mouseDown = false;
 			e.preventDefault();
 			return false; 
 
