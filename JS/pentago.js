@@ -21,10 +21,10 @@ var muted = false, paused = true, winner = 0;
 
 var left = false, right = false, up = false, down = false;
 
-var objectInHud, objectinMain;
+var objectInHud, objectinMain, hudStone;
 
 var board = null;
-var move = 1, turnMode = false;
+var move = 0, turnMode = false;
 
 var clickSound, scrapeSound, confirmSound, music;
 
@@ -504,6 +504,15 @@ function initScene(){
 
 	hudScene = new THREE.Scene();
 
+	loader.load('./Models/stone.json', function(geometry, materials){
+		var tranparentMaterial = new THREE.MeshBasicMaterial({visible: false});
+		hudStone = new THREE.Mesh(geometry, tranparentMaterial);
+		hudStone.scale.set( 0.7, 0.7, 0.7 );
+		hudStone.recieveShadow = true;
+		hudStone.name = "stone";
+		hudScene.add(hudStone);
+	}.bind(this));
+
 }
 
 function initLights(){
@@ -586,7 +595,7 @@ function initHUD(width, height){
 	hudRenderer.shadowMap.enabled = true;
 
 	hudCamera = new THREE.PerspectiveCamera( 45, 1, 0.1, 10000 );
-	hudCamera.position.set(0,10,10);
+	hudCamera.position.set(0,2,1);
 
 	hudCamera.lookAt(hudScene.position);
 
@@ -626,10 +635,34 @@ function resizeHUD(){
 
 function switchTurn(){
 
-	if( move == 1 )
-		move = 2;
-	else if( move == 2 )
+	if( winner != 0 ){
+		var tranparentMaterial = new THREE.MeshBasicMaterial({visible: false});
+		hudStone.material = tranparentMaterial;
 		move = 1;
+		$('#whoseTurn').html('');
+		return;
+	}
+
+	if( move == 0 ){
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		var blackMaterial = new THREE.MeshPhongMaterial({color: 'black', specularMap: bump, bumpScale: 0.2, shininess: 300});
+		hudStone.material = blackMaterial;
+		move = 1;
+		$('#whoseTurn').html('Player Turn:');
+		return;
+	}
+
+	if( move == 1 ){
+		move = 2;
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		var whiteMaterial = new THREE.MeshPhongMaterial({color: 'white', specularMap: bump, bumpScale: 0.2, shininess: 300});
+		hudStone.material = whiteMaterial;
+	}else if( move == 2 ){
+		move = 1;
+		var bump = new THREE.TextureLoader().load( './Textures/plasticbumpmap.png' );
+		var blackMaterial = new THREE.MeshPhongMaterial({color: 'black', specularMap: bump, bumpScale: 0.2, shininess: 300});
+		hudStone.material = blackMaterial;
+	}
 
 	turnMode = !turnMode;
 
@@ -641,6 +674,7 @@ function switchTurn(){
 function render(){
 
 	if(!paused){
+		rotateCamera(hudCamera ,0.01, 0);
 		if( board != null )
 			if( !board.updateSpin() ){
 
@@ -657,11 +691,12 @@ function render(){
 					$('#winDisplay').show(120);
 					$('#playAgain').show(120);
 					paused = true;
+					switchTurn();
 				}
 
 			}
 	}else{
-		rotateCamera(0.001, 0);
+		rotateCamera(mainCamera ,0.001, 0);
 	}
 
 	if(objectInHud != null && objectinMain != null){
@@ -767,7 +802,7 @@ $(document).ready(function(){
 				paused = false;
 			});
 			$('#howPlay').hide(120);
-			
+			switchTurn();
 
 		}else
 			location.reload();
@@ -818,7 +853,7 @@ function handleMouseMovement(e){
 
 	if(mouseDown){
 
-		rotateCamera(dX, dY);
+		rotateCamera(mainCamera, dX, dY);
 
 	}
 
@@ -827,9 +862,9 @@ function handleMouseMovement(e){
 	
 }
 
-function rotateCamera(dX, dY){
-	var quat = new THREE.Quaternion().setFromUnitVectors( mainCamera.up, new THREE.Vector3( 0, 1, 0 ) );
-	var offset = mainCamera.position.clone();
+function rotateCamera(camera , dX, dY){
+	var quat = new THREE.Quaternion().setFromUnitVectors( camera.up, new THREE.Vector3( 0, 1, 0 ) );
+	var offset = camera.position.clone();
 
 	offset.applyQuaternion( quat );
 
@@ -845,6 +880,6 @@ function rotateCamera(dX, dY){
 
 	offset.applyQuaternion( quat.clone().inverse() );
 
-	mainCamera.position.copy( offset );
-	mainCamera.lookAt( mainScene.position );
+	camera.position.copy( offset );
+	camera.lookAt( mainScene.position );
 }
